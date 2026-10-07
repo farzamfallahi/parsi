@@ -1,4 +1,7 @@
 # parsi
+
+[![test](https://github.com/farzamfallahi/parsi/actions/workflows/test.yml/badge.svg)](https://github.com/farzamfallahi/parsi/actions/workflows/test.yml)
+
 Persian (Farsi) text normalisation in C, as a single-header library.
 
 Persian text often mixes in Arabic code points that look the same but
