@@ -207,6 +207,58 @@ static void test_normalize_digits(void)
     assert(strcmp(out, "2024") == 0);
 }
 
+/* Arabic diacritics U+064B-0652 and superscript alef U+0670 */
+#define FATHATAN "\xD9\x8B"
+#define DAMMATAN "\xD9\x8C"
+#define KASRATAN "\xD9\x8D"
+#define FATHA    "\xD9\x8E"
+#define DAMMA    "\xD9\x8F"
+#define KASRA    "\xD9\x90"
+#define SHADDA   "\xD9\x91"
+#define SUKUN    "\xD9\x92"
+#define SUP_ALEF "\xD9\xB0"
+
+static void test_normalize_diacritics(void)
+{
+    char out[16];
+
+    /* Every diacritic in the range is removed */
+    check_normalize(FATHATAN DAMMATAN KASRATAN FATHA DAMMA KASRA SHADDA SUKUN SUP_ALEF,
+                    PARSI_DIACRITICS, "");
+
+    /* کِتاب with a kasra, and Arabic كِتَاب with kaf mapped too */
+    check_normalize(FA_KAF KASRA TEH ALEF BEH, PARSI_DIACRITICS, FA_KAF TEH ALEF BEH);
+    check_normalize(AR_KAF KASRA TEH FATHA ALEF BEH, PARSI_DIACRITICS | PARSI_YEH_KAF,
+                    FA_KAF TEH ALEF BEH);
+
+    /* Without the flag, diacritics are kept */
+    check_normalize(FA_KAF KASRA TEH, PARSI_YEH_KAF, FA_KAF KASRA TEH);
+
+    /* Neighbours of the ranges are kept: U+064A yeh, U+0653 maddah,
+     * U+066F dotless qaf, U+0671 alef wasla */
+    check_normalize("\xD9\x8A\xD9\x93\xD9\xAF\xD9\xB1", PARSI_DIACRITICS,
+                    "\xD9\x8A\xD9\x93\xD9\xAF\xD9\xB1");
+
+    /* Mixed with ASCII, ZWNJ and other flags */
+    check_normalize("a" SHADDA "1" ZWNJ AR_YEH SUKUN, PARSI_DIACRITICS | PARSI_YEH_KAF | PARSI_DIGITS_TO_FA,
+                    "a" FA_1 ZWNJ FA_YEH);
+
+    /* Removed characters take no space: 10 bytes in, 4 bytes out */
+    assert(parsi_normalize(FA_KAF FATHA SHADDA TEH SUKUN, 10, NULL, 0, PARSI_DIACRITICS) == 4);
+
+    memset(out, 'x', sizeof out);
+    assert(parsi_normalize(FA_KAF FATHA SHADDA TEH SUKUN, 10, out, 5, PARSI_DIACRITICS) == 4);
+    assert(memcmp(out, FA_KAF TEH, 4) == 0 && out[4] == '\0' && out[5] == 'x');
+
+    /* Truncated output still skips diacritics after the cut */
+    memset(out, 'x', sizeof out);
+    assert(parsi_normalize(FA_KAF FATHA TEH SUKUN, 8, out, 3, PARSI_DIACRITICS) == 4);
+    assert(memcmp(out, FA_KAF, 2) == 0 && out[2] == '\0' && out[3] == 'x');
+
+    /* Only diacritics: empty result */
+    assert(parsi_normalize(FATHA KASRA, 4, out, sizeof out, PARSI_DIACRITICS) == 0 && out[0] == '\0');
+}
+
 int main(void)
 {
     test_decode();
@@ -214,6 +266,7 @@ int main(void)
     test_roundtrip();
     test_normalize();
     test_normalize_digits();
+    test_normalize_diacritics();
     printf("All tests passed.\n");
     return 0;
 }

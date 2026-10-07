@@ -27,6 +27,9 @@ size_t parsi_utf8_encode(unsigned long cp, unsigned char *out);
 #define PARSI_DIGITS_TO_FA 0x02u /* ASCII and Arabic-Indic digits -> Persian digits */
 #define PARSI_DIGITS_TO_EN 0x04u /* Persian and Arabic-Indic digits -> ASCII digits;
                                   * wins if PARSI_DIGITS_TO_FA is also set */
+#define PARSI_DIACRITICS   0x08u /* remove Arabic diacritics U+064B-0652 and U+0670;
+                                  * U+0653-0655 are deliberately kept: hamza above
+                                  * marks the ezafe (خانهٔ) and maddah forms آ */
 
 /* Normalize in_len bytes of UTF-8 text from in into out, according to flags.
  * Like snprintf: writes at most out_cap bytes including a terminating NUL
@@ -168,6 +171,11 @@ size_t parsi_normalize(const char *in, size_t in_len, char *out, size_t out_cap,
             buf[0] = s[i];
             used = len = 1;
         } else {
+            if ((flags & PARSI_DIACRITICS) &&
+                ((cp >= 0x064B && cp <= 0x0652) || cp == 0x0670)) {
+                i += used;                        /* drop it: nothing to write or count */
+                continue;
+            }
             if (flags & PARSI_YEH_KAF) {
                 if (cp == 0x064A || cp == 0x0649) cp = 0x06CC; /* Arabic yeh, alef maksura */
                 else if (cp == 0x0643) cp = 0x06A9;            /* Arabic kaf */
