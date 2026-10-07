@@ -30,7 +30,7 @@ size_t parsi_utf8_encode(unsigned long cp, unsigned char *out);
  * (out may be NULL when out_cap is 0), never splits a character, and returns
  * the length the full result needs, not counting the NUL. If the return value
  * is >= out_cap, the output was truncated. Invalid UTF-8 bytes are copied
- * through unchanged. */
+ * through unchanged. in and out must not overlap. */
 size_t parsi_normalize(const char *in, size_t in_len, char *out, size_t out_cap,
                        unsigned flags);
 
