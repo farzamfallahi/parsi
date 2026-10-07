@@ -54,4 +54,6 @@ dkms.conf
 # debug information files
 *.dwo
 tests/test_parsi
-*.txt
+
+# Exported conversation logs: YYYY-MM-DD-HHMMSS-<slug>.txt
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]-*.txt
