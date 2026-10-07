@@ -35,7 +35,18 @@ size_t parsi_utf8_decode(const unsigned char *s, size_t len, unsigned long *cp)
 
     /* 2 bytes: 110xxxxx 10xxxxxx (Persian letters live here) */
     if ((s[0] & 0xE0) == 0xC0) {
-        /* TODO: your code here */
+        unsigned long c;
+
+        if (len < 2) return 0;                    /* character is cut off */
+        if ((s[1] & 0xC0) != 0x80) return 0;      /* 2nd byte must be 10xxxxxx */
+
+        c = ((unsigned long)(s[0] & 0x1F) << 6)   /* 5 bits from byte 1 */
+          |  (unsigned long)(s[1] & 0x3F);        /* 6 bits from byte 2 */
+
+        if (c < 0x80) return 0;                   /* overlong encoding */
+
+        *cp = c;
+        return 2;
     }
 
     return 0; /* invalid, or a length not supported yet */
