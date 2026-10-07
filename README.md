@@ -4,7 +4,8 @@ Persian (Farsi) text normalisation in C, as a single-header library.
 Persian text often mixes in Arabic code points that look the same but
 compare differently, such as Arabic kaf `ك` (U+0643) instead of Persian
 kaf `ک` (U+06A9). `parsi` rewrites them to their Persian forms so that
-searching, sorting and comparing work. It also has a small, strict UTF-8
+searching, sorting and comparing work. It can also convert digits
+between ASCII, Arabic-Indic and Persian forms. It also has a small, strict UTF-8
 decoder and encoder. It is plain C99 with no dependencies.
 
 ## Including it
@@ -63,9 +64,20 @@ copied through unchanged.
 
 ### Flags
 
-| Flag            | Effect                                                         |
-|-----------------|----------------------------------------------------------------|
-| `PARSI_YEH_KAF` | `ي` U+064A and `ى` U+0649 → `ی` U+06CC; `ك` U+0643 → `ک` U+06A9 |
+Combine flags with `|`, for example `PARSI_YEH_KAF | PARSI_DIGITS_TO_EN`.
+
+| Flag                 | Effect                                                              |
+|----------------------|---------------------------------------------------------------------|
+| `PARSI_YEH_KAF`      | `ي` U+064A and `ى` U+0649 → `ی` U+06CC; `ك` U+0643 → `ک` U+06A9      |
+| `PARSI_DIGITS_TO_FA` | ASCII `0`–`9` and Arabic-Indic `٠`–`٩` (U+0660–0669) → Persian `۰`–`۹` (U+06F0–06F9) |
+| `PARSI_DIGITS_TO_EN` | Persian `۰`–`۹` and Arabic-Indic `٠`–`٩` → ASCII `0`–`9`              |
+
+If both digit flags are set, `PARSI_DIGITS_TO_EN` wins: ASCII digits are
+what `atoi`, `strtol` and most parsers expect.
+
+The output can be longer than the input. `PARSI_DIGITS_TO_FA` turns each
+1-byte ASCII digit into a 2-byte Persian one, so size the buffer from the
+return value, not from `in_len`.
 
 ### UTF-8 helpers
 

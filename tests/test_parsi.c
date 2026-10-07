@@ -148,12 +148,72 @@ static void test_normalize(void)
     assert(parsi_normalize(AR_KAF, 2, out, 1, PARSI_YEH_KAF) == 2 && out[0] == '\0');
 }
 
+/* Persian digits U+06F0-06F9 and Arabic-Indic digits U+0660-0669 */
+#define FA_DIGITS "\xDB\xB0\xDB\xB1\xDB\xB2\xDB\xB3\xDB\xB4\xDB\xB5\xDB\xB6\xDB\xB7\xDB\xB8\xDB\xB9"
+#define AR_DIGITS "\xD9\xA0\xD9\xA1\xD9\xA2\xD9\xA3\xD9\xA4\xD9\xA5\xD9\xA6\xD9\xA7\xD9\xA8\xD9\xA9"
+#define FA_0 "\xDB\xB0"
+#define FA_1 "\xDB\xB1"
+#define FA_2 "\xDB\xB2"
+#define FA_3 "\xDB\xB3"
+#define FA_4 "\xDB\xB4"
+#define AR_3 "\xD9\xA3"
+
+static void test_normalize_digits(void)
+{
+    char out[16];
+
+    /* PARSI_DIGITS_TO_FA: ASCII and Arabic-Indic become Persian */
+    check_normalize("0123456789", PARSI_DIGITS_TO_FA, FA_DIGITS);
+    check_normalize(AR_DIGITS,    PARSI_DIGITS_TO_FA, FA_DIGITS);
+    check_normalize(FA_DIGITS,    PARSI_DIGITS_TO_FA, FA_DIGITS);
+
+    /* PARSI_DIGITS_TO_EN: Persian and Arabic-Indic become ASCII */
+    check_normalize(FA_DIGITS,    PARSI_DIGITS_TO_EN, "0123456789");
+    check_normalize(AR_DIGITS,    PARSI_DIGITS_TO_EN, "0123456789");
+    check_normalize("0123456789", PARSI_DIGITS_TO_EN, "0123456789");
+
+    /* Neighbours of the digit ranges are left alone */
+    check_normalize("/:", PARSI_DIGITS_TO_FA, "/:");                       /* U+002F, U+003A */
+    check_normalize("\xDB\xAF\xDB\xBA", PARSI_DIGITS_TO_EN, "\xDB\xAF\xDB\xBA"); /* U+06EF, U+06FA */
+    check_normalize("\xD9\x9F\xD9\xAA", PARSI_DIGITS_TO_EN, "\xD9\x9F\xD9\xAA"); /* U+065F, U+066A */
+
+    /* Without a digit flag, digits are unchanged */
+    check_normalize("1" FA_2 AR_3, PARSI_YEH_KAF, "1" FA_2 AR_3);
+
+    /* Mixed string: Arabic letters, a space, and all three digit kinds */
+    check_normalize(AR_YEH AR_KAF " 1" FA_2 AR_3, PARSI_YEH_KAF | PARSI_DIGITS_TO_FA,
+                    FA_YEH FA_KAF " " FA_1 FA_2 FA_3);
+    check_normalize(AR_YEH AR_KAF " 1" FA_2 AR_3, PARSI_YEH_KAF | PARSI_DIGITS_TO_EN,
+                    FA_YEH FA_KAF " 123");
+    check_normalize(AR_YEH AR_KAF " 1" FA_2 AR_3, PARSI_DIGITS_TO_EN,
+                    AR_YEH AR_KAF " 123");
+
+    /* Both digit flags: PARSI_DIGITS_TO_EN wins */
+    check_normalize("1" FA_2 AR_3, PARSI_DIGITS_TO_FA | PARSI_DIGITS_TO_EN, "123");
+
+    /* Output longer than input: "2024" is 4 bytes in, 8 bytes out */
+    assert(parsi_normalize("2024", 4, NULL, 0, PARSI_DIGITS_TO_FA) == 8);
+
+    memset(out, 'x', sizeof out);
+    assert(parsi_normalize("2024", 4, out, 9, PARSI_DIGITS_TO_FA) == 8);   /* exact fit */
+    assert(memcmp(out, FA_2 FA_0 FA_2 FA_4, 8) == 0 && out[8] == '\0');
+
+    memset(out, 'x', sizeof out);
+    assert(parsi_normalize("2024", 4, out, 5, PARSI_DIGITS_TO_FA) == 8);   /* in_len + 1 is too small */
+    assert(memcmp(out, FA_2 FA_0, 4) == 0 && out[4] == '\0' && out[5] == 'x');
+
+    /* Output shorter than input: 8 bytes in, 4 bytes out */
+    assert(parsi_normalize(FA_2 FA_0 FA_2 FA_4, 8, out, sizeof out, PARSI_DIGITS_TO_EN) == 4);
+    assert(strcmp(out, "2024") == 0);
+}
+
 int main(void)
 {
     test_decode();
     test_encode();
     test_roundtrip();
     test_normalize();
+    test_normalize_digits();
     printf("All tests passed.\n");
     return 0;
 }

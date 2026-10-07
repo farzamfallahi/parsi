@@ -23,7 +23,10 @@ size_t parsi_utf8_decode(const unsigned char *s, size_t len, unsigned long *cp);
 size_t parsi_utf8_encode(unsigned long cp, unsigned char *out);
 
 /* Flags for parsi_normalize */
-#define PARSI_YEH_KAF 0x01u /* Arabic yeh/alef maksura -> Persian yeh, Arabic kaf -> Persian kaf */
+#define PARSI_YEH_KAF      0x01u /* Arabic yeh/alef maksura -> Persian yeh, Arabic kaf -> Persian kaf */
+#define PARSI_DIGITS_TO_FA 0x02u /* ASCII and Arabic-Indic digits -> Persian digits */
+#define PARSI_DIGITS_TO_EN 0x04u /* Persian and Arabic-Indic digits -> ASCII digits;
+                                  * wins if PARSI_DIGITS_TO_FA is also set */
 
 /* Normalize in_len bytes of UTF-8 text from in into out, according to flags.
  * Like snprintf: writes at most out_cap bytes including a terminating NUL
@@ -168,6 +171,13 @@ size_t parsi_normalize(const char *in, size_t in_len, char *out, size_t out_cap,
             if (flags & PARSI_YEH_KAF) {
                 if (cp == 0x064A || cp == 0x0649) cp = 0x06CC; /* Arabic yeh, alef maksura */
                 else if (cp == 0x0643) cp = 0x06A9;            /* Arabic kaf */
+            }
+            if (flags & PARSI_DIGITS_TO_EN) {                  /* checked first, so it wins */
+                if (cp >= 0x06F0 && cp <= 0x06F9) cp = '0' + (cp - 0x06F0);      /* Persian */
+                else if (cp >= 0x0660 && cp <= 0x0669) cp = '0' + (cp - 0x0660); /* Arabic-Indic */
+            } else if (flags & PARSI_DIGITS_TO_FA) {
+                if (cp >= '0' && cp <= '9') cp = 0x06F0 + (cp - '0');            /* ASCII */
+                else if (cp >= 0x0660 && cp <= 0x0669) cp = 0x06F0 + (cp - 0x0660); /* Arabic-Indic */
             }
             len = parsi_utf8_encode(cp, buf);     /* cp came from the decoder, so valid */
         }
