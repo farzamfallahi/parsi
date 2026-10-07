@@ -28,6 +28,13 @@ static void test_decode(void)
     assert(parsi_utf8_decode(U("\xE2\x80"), 2, &cp) == 0);             /* truncated */
     assert(parsi_utf8_decode(U("\xE0\x80\x80"), 3, &cp) == 0);         /* overlong */
     assert(parsi_utf8_decode(U("\xED\xA0\x80"), 3, &cp) == 0);         /* surrogate */
+
+    /* 4-byte sequences */
+    assert(parsi_utf8_decode(U("\xF0\x9F\x98\x80"), 4, &cp) == 4 && cp == 0x1F600); /* 😀 */
+    assert(parsi_utf8_decode(U("\xF0\x9F\x98"), 3, &cp) == 0);         /* truncated */
+    assert(parsi_utf8_decode(U("\xF0\x80\x80\x80"), 4, &cp) == 0);     /* overlong */
+    assert(parsi_utf8_decode(U("\xF4\x90\x80\x80"), 4, &cp) == 0);     /* above U+10FFFF */
+    assert(parsi_utf8_decode(U("\xF8\x88\x80\x80\x80"), 5, &cp) == 0); /* 5-byte lead */
 }
 
 int main(void)

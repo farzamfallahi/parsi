@@ -68,7 +68,28 @@ size_t parsi_utf8_decode(const unsigned char *s, size_t len, unsigned long *cp)
         return 3;
     }
 
-    return 0; /* invalid, or a length not supported yet */
+    /* 4 bytes: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (emoji live here) */
+    if ((s[0] & 0xF8) == 0xF0) {
+        unsigned long c;
+
+        if (len < 4) return 0;                    /* character is cut off */
+        if ((s[1] & 0xC0) != 0x80) return 0;      /* 2nd byte must be 10xxxxxx */
+        if ((s[2] & 0xC0) != 0x80) return 0;      /* 3rd byte must be 10xxxxxx */
+        if ((s[3] & 0xC0) != 0x80) return 0;      /* 4th byte must be 10xxxxxx */
+
+        c = ((unsigned long)(s[0] & 0x07) << 18)  /* 3 bits from byte 1 */
+          | ((unsigned long)(s[1] & 0x3F) << 12)  /* 6 bits from byte 2 */
+          | ((unsigned long)(s[2] & 0x3F) << 6)   /* 6 bits from byte 3 */
+          |  (unsigned long)(s[3] & 0x3F);        /* 6 bits from byte 4 */
+
+        if (c < 0x10000) return 0;                /* overlong encoding */
+        if (c > 0x10FFFF) return 0;               /* beyond Unicode range */
+
+        *cp = c;
+        return 4;
+    }
+
+    return 0; /* invalid lead byte (continuation byte, or 5+ byte form) */
 }
 
 #endif /* PARSI_IMPLEMENTATION */
