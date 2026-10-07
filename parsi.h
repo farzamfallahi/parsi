@@ -48,6 +48,25 @@ size_t parsi_utf8_decode(const unsigned char *s, size_t len, unsigned long *cp)
         *cp = c;
         return 2;
     }
+    
+    /* 3 bytes: 1110xxxx 10xxxxxx 10xxxxxx (ZWNJ lives here) */
+    if ((s[0] & 0xF0) == 0xE0) {
+        unsigned long c;
+
+        if (len < 3) return 0;                    /* character is cut off */
+        if ((s[1] & 0xC0) != 0x80) return 0;      /* 2nd byte must be 10xxxxxx */
+        if ((s[2] & 0xC0) != 0x80) return 0;      /* 3rd byte must be 10xxxxxx */
+
+        c = ((unsigned long)(s[0] & 0x0F) << 12)  /* 4 bits from byte 1 */
+          | ((unsigned long)(s[1] & 0x3F) << 6)   /* 6 bits from byte 2 */
+          |  (unsigned long)(s[2] & 0x3F);        /* 6 bits from byte 3 */
+
+        if (c < 0x800) return 0;                  /* overlong encoding */
+        if (c >= 0xD800 && c <= 0xDFFF) return 0; /* surrogates are invalid */
+
+        *cp = c;
+        return 3;
+    }
 
     return 0; /* invalid, or a length not supported yet */
 }

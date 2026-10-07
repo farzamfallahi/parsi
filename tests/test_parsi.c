@@ -22,6 +22,12 @@ static void test_decode(void)
     assert(parsi_utf8_decode(U("\xDB\x41"), 2, &cp) == 0);  /* bad continuation */
     assert(parsi_utf8_decode(U("\xC0\x80"), 2, &cp) == 0);  /* overlong */
     assert(parsi_utf8_decode(U(""), 0, &cp) == 0);          /* empty */
+
+    /* 3-byte sequences */
+    assert(parsi_utf8_decode(U("\xE2\x80\x8C"), 3, &cp) == 3 && cp == 0x200C); /* ZWNJ */
+    assert(parsi_utf8_decode(U("\xE2\x80"), 2, &cp) == 0);             /* truncated */
+    assert(parsi_utf8_decode(U("\xE0\x80\x80"), 3, &cp) == 0);         /* overlong */
+    assert(parsi_utf8_decode(U("\xED\xA0\x80"), 3, &cp) == 0);         /* surrogate */
 }
 
 int main(void)
