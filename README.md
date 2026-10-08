@@ -7,10 +7,7 @@ Persian (Farsi) text normalisation in C, as a single-header library.
 Persian text often mixes in Arabic code points that look the same but
 compare differently, such as Arabic kaf `ك` (U+0643) instead of Persian
 kaf `ک` (U+06A9). `parsi` rewrites them to their Persian forms so that
-searching, sorting and comparing work. It can also convert digits
-between ASCII, Arabic-Indic and Persian forms and remove diacritics.
-It also has a small, strict UTF-8
-decoder and encoder. It is plain C99 with no dependencies.
+searching, sorting and comparing work. It can also convert digits between ASCII, Arabic-Indic and Persian forms and remove diacritics, and it includes a small, strict UTF-8 decoder and encoder. It is plain C99 with no dependencies.
 
 ## Including it
 
